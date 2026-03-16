@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Kindle Shelf</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #060a10;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    font-family: 'Share Tech Mono', 'Courier New', monospace;
+  }
+
+  /* Cargo hold hex grating */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='46'%3E%3Cpolygon points='20,1 39,11 39,35 20,45 1,35 1,11' fill='%2308101a' stroke='%23162230' stroke-width='1.2'/%3E%3Cpolygon points='20,6 34,14 34,32 20,40 6,32 6,14' fill='none' stroke='%230f1c2a' stroke-width='0.4'/%3E%3C/svg%3E"),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='46'%3E%3Cpolygon points='20,1 39,11 39,35 20,45 1,35 1,11' fill='%2308101a' stroke='%23162230' stroke-width='1.2'/%3E%3C/svg%3E");
+    background-position: 0 0, 20px 23px;
+    background-size: 40px 46px;
+    pointer-events: none;
+    opacity: 0.9;
+  }
+
+  /* Warm overhead light — cargo bay lamp */
+  body::after {
+    content: '';
+    position: fixed;
+    top: 0; left: 8%; right: 8%;
+    height: 2px;
+    background: linear-gradient(90deg,
+      transparent,
+      rgba(255,220,120,0.3) 30%,
+      rgba(255,220,120,0.55) 50%,
+      rgba(255,220,120,0.3) 70%,
+      transparent
+    );
+    box-shadow: 0 0 22px 8px rgba(255,210,100,0.12);
+  }
+
+  /* Cargo hold ambient glow — warm amber center, cold blue corner */
+  .cargo-glow {
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse at 50% 40%, rgba(90,65,18,0.18) 0%, transparent 60%),
+      radial-gradient(ellipse at 5% 90%, rgba(60,120,200,0.1) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  /* CRT scanlines */
+  .scanlines {
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 3px,
+      rgba(0,0,0,0.07) 3px,
+      rgba(0,0,0,0.07) 4px
+    );
+    pointer-events: none;
+    z-index: 100;
+  }
+
+  .shelf-wrap {
+    width: 100vw;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    position: relative;
+    z-index: 2;
+  }
+
+  .shelf-unit {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .shelf-unit + .shelf-unit { margin-top: 28px; }
+
+  .books-row {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 5px;
+    padding: 0 56px;
+    width: 100%;
+    position: relative;
+  }
+
+  /* Metal bracket ends */
+  .bracket {
+    position: absolute;
+    bottom: 0;
+    width: 16px;
+    height: 65%;
+    background: linear-gradient(180deg, #3a3f48 0%, #22272e 100%);
+    border: 1px solid #4a5560;
+    border-bottom: none;
+    border-radius: 3px 3px 0 0;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.12), 2px 0 8px rgba(0,0,0,0.5);
+    flex-shrink: 0;
+  }
+  .bracket-left  { left: 28px; }
+  .bracket-right { right: 28px; }
+
+  .book {
+    flex-shrink: 0;
+    position: relative;
+    border-radius: 1px 2px 2px 1px;
+    overflow: hidden;
+    box-shadow:
+      3px 4px 16px rgba(0,0,0,0.9),
+      -1px 0 3px rgba(0,0,0,0.6),
+      inset -2px 0 5px rgba(0,0,0,0.4);
+    filter: brightness(0.82) saturate(0.72);
+  }
+
+  .book img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .book::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      108deg,
+      rgba(255,255,255,0.07) 0%,
+      transparent 25%,
+      transparent 75%,
+      rgba(0,0,0,0.35) 100%
+    );
+    pointer-events: none;
+  }
+
+  /* Brushed durasteel shelf plank */
+  .plank {
+    width: 100%;
+    height: 24px;
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(180deg,
+      #4e5664 0%,
+      #363d49 18%,
+      #282f38 50%,
+      #1c2028 100%
+    );
+    border-top: 1px solid #606e80;
+    border-bottom: 2px solid #0e1115;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.95), 0 2px 6px rgba(0,0,0,0.5);
+  }
+
+  /* Horizontal brushed metal lines */
+  .plank::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      180deg,
+      transparent,
+      transparent 2px,
+      rgba(255,255,255,0.02) 2px,
+      rgba(255,255,255,0.02) 3px
+    );
+  }
+
+  .rivet {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #5a6470, #252c35);
+    border: 1px solid #4a5260;
+  }
+
+  .plank-shadow {
+    width: 100%;
+    height: 18px;
+    background: linear-gradient(180deg, rgba(0,0,0,0.6), transparent);
+  }
+
+  /* HUD readout */
+  .hud {
+    position: fixed;
+    bottom: 20px; right: 24px;
+    font-family: 'Share Tech Mono', 'Courier New', monospace;
+    font-size: 10px;
+    color: rgba(80,200,255,0.32);
+    letter-spacing: 0.15em;
+    line-height: 1.8;
+    text-align: right;
+    z-index: 200;
+  }
+
+  .status {
+    position: fixed;
+    top: 18px; right: 22px;
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: #333;
+    z-index: 200;
+    transition: background 0.5s;
+  }
+  .status.live    { background: #3aaa60; box-shadow: 0 0 10px rgba(58,170,96,0.8); }
+  .status.syncing { background: #aaaa30; animation: blink 0.8s ease infinite; }
+  .status.error   { background: #cc3333; box-shadow: 0 0 10px rgba(200,50,50,0.8); }
+
+  /* Error banner */
+  .error-banner {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    background: rgba(180, 30, 30, 0.92);
+    color: rgba(255,220,220,0.95);
+    font-family: 'Share Tech Mono', 'Courier New', monospace;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    line-height: 1.7;
+    padding: 14px 24px;
+    z-index: 300;
+    border-bottom: 1px solid rgba(255,80,80,0.4);
+  }
+  .error-banner.visible { display: block; }
+  .error-banner .error-title {
+    font-size: 13px;
+    color: #ff9999;
+    margin-bottom: 4px;
+  }
+  .error-banner .error-cmd {
+    background: rgba(0,0,0,0.3);
+    padding: 2px 8px;
+    border-radius: 3px;
+    color: #ffddaa;
+  }
+
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+</style>
+
+    <script>
+      window.STATIC_BOOKS = [{"asin":"B082723PYG","title":"The Hardest Place: The American Military Adrift in Afghanistan's Pech Valley","author":"Morgan, Wesley:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B082723PYG.01.LZZZZZZZ.jpg","acquiredDate":null,"physicalWidth":7.23,"physicalHeight":10.63},{"asin":"B007Z507ZQ","title":"Passenger to Frankfurt","author":"Christie, Agatha:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B007Z507ZQ.01.LZZZZZZZ.jpg","acquiredDate":null,"physicalWidth":4.95,"physicalHeight":7.28},{"asin":"B007UVNI1K","title":"Metropolitan (Metropolitan Series)","author":"Williams, Walter Jon:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B007UVNI1K.01.LZZZZZZZ.jpg","acquiredDate":null,"physicalWidth":6.04,"physicalHeight":8.88},{"asin":"B007P9M034","title":"Invisible Armies: An Epic History of Guerrilla Warfare from Ancient Times to the Present","author":"Boot, Max:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B007P9M034.01.LZZZZZZZ.jpg","acquiredDate":null,"physicalWidth":7.23,"physicalHeight":10.63},{"asin":"B076QD62Q2","title":"Frankenstein","author":"Shelley, Mary:Press, Eireann:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B076QD62Q2.01.LZZZZZZZ.jpg","acquiredDate":null,"physicalWidth":5.78,"physicalHeight":8.5},{"asin":"B0CQJHF3HQ","title":"We Solve Murders: A Novel","author":"Osman, Richard:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B0CQJHF3HQ.01.LZZZZZZZ.jpg","acquiredDate":null,"physicalWidth":6.07,"physicalHeight":8.93},{"asin":"B0D26CZWFD","title":"Bury Our Bones in the Midnight Soil","author":"Schwab, V. E.:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B0D26CZWFD.01.LZZZZZZZ.jpg","acquiredDate":null,"physicalWidth":5.8,"physicalHeight":8.5},{"asin":"B0F9Y2M1MY","title":"MANCHUKUO 1987","author":"red, yoshimi:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B0F9Y2M1MY.01.LZZZZZZZ.jpg","acquiredDate":null,"physicalWidth":5.8,"physicalHeight":8.5},{"asin":"B00H6STTBK","title":"Pasquale's Angel","author":"McAuley, Paul:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B00H6STTBK.01.LZZZZZZZ.jpg","acquiredDate":null,"physicalWidth":5.13,"physicalHeight":7.55},{"asin":"B0F6574CKS","title":"Discipline: A Novel","author":"Pham, Larissa:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B0F6574CKS.01.LZZZZZZZ.jpg","acquiredDate":null,"physicalWidth":5.06,"physicalHeight":7.44},{"asin":"B07C52T45T","title":"The New Oxford Annotated Bible with Apocrypha: New Revised Standard Version","author":"Brettler, Marc:Newsom, Carol:Perkins, Pheme:Coogan, Michael:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B07C52T45T.01.LZZZZZZZ.jpg","acquiredDate":null,"physicalWidth":7.23,"physicalHeight":10.63},{"asin":"B0FTZBB4HP","title":"The Seven Dials Mystery","author":"Agatha Christie:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B0FTZBB4HP.01.LZZZZZZZ.jpg","acquiredDate":null,"physicalWidth":5.23,"physicalHeight":7.69},{"asin":"B0B6YZQ2WC","title":"Ashes of Man: The Sun Eater: Book Five","author":"Ruocchio, Christopher:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B0B6YZQ2WC.01.LZZZZZZZ.jpg","acquiredDate":null,"physicalWidth":6.91,"physicalHeight":10.17},{"asin":"B0DCZKG777","title":"The AI Con: How to Fight Big Tech’s Hype and Create the Future We Want – Exposing Surveillance Capitalism and Artificial Intelligence Myths in Information Technology Today","author":"Bender, Emily M.:Hanna, Alex:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B0DCZKG777.01.LZZZZZZZ.jpg","acquiredDate":null,"physicalWidth":4.87,"physicalHeight":7.17},{"asin":"B0DPLW7YFX","title":"The Impossible Fortune: A Thursday Murder Club Mystery (Thursday Murder Club Mysteries Book 5)","author":"Osman, Richard:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B0DPLW7YFX.01.LZZZZZZZ.jpg","acquiredDate":null,"physicalWidth":5.89,"physicalHeight":8.66},{"asin":"B00GVFW7QI","title":"Fairyland (S.F. MASTERWORKS)","author":"McAuley, Paul:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B00GVFW7QI.01.LZZZZZZZ.jpg","acquiredDate":null,"physicalWidth":5.98,"physicalHeight":8.79},{"asin":"B0BQLKNTYR","title":"The Last Devil to Die: A Thursday Murder Club Mystery (Thursday Murder Club Mysteries Book 4)","author":"Osman, Richard:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B0BQLKNTYR.01.LZZZZZZZ.jpg","acquiredDate":null,"physicalWidth":5.89,"physicalHeight":8.66},{"asin":"B0FBJ2Y718","title":"The Iron Garden Sutra (The Cosmic Wheel Book 1)","author":"Sui, A.D.:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B0FBJ2Y718.01.LZZZZZZZ.jpg","acquiredDate":null,"physicalWidth":5.8,"physicalHeight":8.5},{"asin":"B0FBLVJ37P","title":"The Final Problem: A Novel","author":"Perez-Reverte, Arturo:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B0FBLVJ37P.01.LZZZZZZZ.jpg","acquiredDate":null,"physicalWidth":5.2,"physicalHeight":7.64},{"asin":"B0C3C886FY","title":"Martyr!: A novel","author":"Akbar, Kaveh:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B0C3C886FY.01.LZZZZZZZ.jpg","acquiredDate":null,"physicalWidth":5.8,"physicalHeight":8.53},{"asin":"B09NLPTNQ2","title":"The Bullet That Missed: A Thursday Murder Club Mystery (Thursday Murder Club Mysteries Book 3)","author":"Osman, Richard:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B09NLPTNQ2.01.LZZZZZZZ.jpg","acquiredDate":null,"physicalWidth":5.98,"physicalHeight":8.8},{"asin":"B08RWSBLQT","title":"The Secret of Chimneys","author":"Christie, Agatha:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B08RWSBLQT.01.LZZZZZZZ.jpg","acquiredDate":null,"physicalWidth":5.14,"physicalHeight":7.56},{"asin":"B08YRM9NBM","title":"The Man Who Died Twice: A Thursday Murder Club Mystery (Thursday Murder Club Mysteries Book 2)","author":"Osman, Richard:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B08YRM9NBM.01.LZZZZZZZ.jpg","acquiredDate":null,"physicalWidth":6.07,"physicalHeight":8.93},{"asin":"B084M663VB","title":"The Thursday Murder Club: A Novel (Thursday Murder Club Mysteries Book 1)","author":"Osman, Richard:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B084M663VB.01.LZZZZZZZ.jpg","acquiredDate":null,"physicalWidth":5.81,"physicalHeight":8.55},{"asin":"B00526VW5E","title":"Murder Is Easy (Superintendent Battle Book 4)","author":"Christie, Agatha:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B00526VW5E.01.LZZZZZZZ.jpg","acquiredDate":null,"physicalWidth":5.34,"physicalHeight":7.85},{"asin":"B0D5J7B5JS","title":"The Dragonfly Gambit","author":"Sui, A.D.:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B0D5J7B5JS.01.LZZZZZZZ.jpg","acquiredDate":null,"physicalWidth":5.78,"physicalHeight":8.5},{"asin":"B005CL8EZA","title":"The Pale Horse","author":"Christie, Agatha:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B005CL8EZA.01.LZZZZZZZ.jpg","acquiredDate":null,"physicalWidth":5.07,"physicalHeight":7.46},{"asin":"B0DSGQ1FS9","title":"Hole in the Sky: A Novel","author":"Wilson, Daniel H.:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B0DSGQ1FS9.01.LZZZZZZZ.jpg","acquiredDate":null,"physicalWidth":5.98,"physicalHeight":8.8},{"asin":"B07MB46BSQ","title":"The Southern Book Club's Guide to Slaying Vampires: A Novel","author":"Hendrix, Grady:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B07MB46BSQ.01.LZZZZZZZ.jpg","acquiredDate":null,"physicalWidth":6.12,"physicalHeight":9},{"asin":"B0DQ72PKP2","title":"Alchemised","author":"SenLinYu:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B0DQ72PKP2.01.LZZZZZZZ.jpg","acquiredDate":null,"physicalWidth":7.23,"physicalHeight":10.63},{"asin":"B0F3XYVL34","title":"The Murder at World's End: A Gripping Locked-Room Murder Mystery where an Unlikely Duo must Unravel the Truth (Stockingham & Pike Book 1)","author":"Montgomery, Ross:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B0F3XYVL34.01.LZZZZZZZ.jpg","acquiredDate":null,"physicalWidth":5.78,"physicalHeight":8.5},{"asin":"B09MVM8R7T","title":"The Golden Enclaves: A Novel (The Scholomance Book 3)","author":"Novik, Naomi:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B09MVM8R7T.01.LZZZZZZZ.jpg","acquiredDate":null,"physicalWidth":5.78,"physicalHeight":8.5},{"asin":"B0FQMV4867","title":"Lazarus: Fallen #6","author":"Rucka, Greg:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B0FQMV4867.01.LZZZZZZZ.jpg","acquiredDate":null,"physicalWidth":4.62,"physicalHeight":6.8},{"asin":"B098QS47D3","title":"The Paris Apartment: A Novel","author":"Foley, Lucy:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B098QS47D3.01.LZZZZZZZ.jpg","acquiredDate":null,"physicalWidth":5.95,"physicalHeight":8.75},{"asin":"B0FQJQCKZP","title":"Lazarus: Fallen #5","author":"Rucka, Greg:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B0FQJQCKZP.01.LZZZZZZZ.jpg","acquiredDate":null,"physicalWidth":4.62,"physicalHeight":6.8},{"asin":"B0FJGX3XXX","title":"Lazarus: Fallen #4","author":"Rucka, Greg:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B0FJGX3XXX.01.LZZZZZZZ.jpg","acquiredDate":null,"physicalWidth":4.62,"physicalHeight":6.8},{"asin":"B08K7KY8Q7","title":"The Last Graduate: A Novel (The Scholomance Book 2)","author":"Novik, Naomi:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B08K7KY8Q7.01.LZZZZZZZ.jpg","acquiredDate":null,"physicalWidth":5.75,"physicalHeight":8.45},{"asin":"B0FJH3KK6M","title":"Lazarus: Fallen #3","author":"Rucka, Greg:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B0FJH3KK6M.01.LZZZZZZZ.jpg","acquiredDate":null,"physicalWidth":4.62,"physicalHeight":6.8},{"asin":"B083RZC8KQ","title":"A Deadly Education: A Novel (The Scholomance Book 1)","author":"Novik, Naomi:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B083RZC8KQ.01.LZZZZZZZ.jpg","acquiredDate":null,"physicalWidth":5.51,"physicalHeight":8.11},{"asin":"B0FDDMP6RM","title":"Lazarus: Fallen #2","author":"Rucka, Greg:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B0FDDMP6RM.01.LZZZZZZZ.jpg","acquiredDate":null,"physicalWidth":4.62,"physicalHeight":6.8},{"asin":"B00JO8PEN2","title":"The Nightingale: A Novel","author":"Hannah, Kristin:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B00JO8PEN2.01.LZZZZZZZ.jpg","acquiredDate":null},{"asin":"B0F46JR49P","title":"Lazarus: Fallen #1","author":"Rucka, Greg:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B0F46JR49P.01.LZZZZZZZ.jpg","acquiredDate":null},{"asin":"B00OZ0TM32","title":"Eileen: A Novel","author":"Moshfegh, Ottessa:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B00OZ0TM32.01.LZZZZZZZ.jpg","acquiredDate":null},{"asin":"B0B23GCCHW","title":"Lazarus: Risen #7","author":"Rucka, Greg:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B0B23GCCHW.01.LZZZZZZZ.jpg","acquiredDate":null},{"asin":"B08F4YZZ84","title":"The Jasmine Throne (The Burning Kingdoms Book 1)","author":"Suri, Tasha:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B08F4YZZ84.01.LZZZZZZZ.jpg","acquiredDate":null},{"asin":"B0D8HPDKYB","title":"Livesuit (The Captive's War)","author":"Corey, James S. A.:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B0D8HPDKYB.01.LZZZZZZZ.jpg","acquiredDate":null},{"asin":"B0DJRN4YF9","title":"Heartwood (A Read with Jenna Pick): A Novel","author":"Gaige, Amity:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B0DJRN4YF9.01.LZZZZZZZ.jpg","acquiredDate":null},{"asin":"B0CN6NCV7P","title":"The Mercy of Gods (The Captive's War Book 1)","author":"Corey, James S. A.:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B0CN6NCV7P.01.LZZZZZZZ.jpg","acquiredDate":null},{"asin":"B09MD95S5V","title":"Babel: Or the Necessity of Violence: An Arcane History of the Oxford Translators' Revolution","author":"Kuang, R. F.:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B09MD95S5V.01.LZZZZZZZ.jpg","acquiredDate":null},{"asin":"B0DMV3JSLJ","title":"Women, Seated","author":"Yueran, Zhang:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B0DMV3JSLJ.01.LZZZZZZZ.jpg","acquiredDate":null},{"asin":"B093KTJDL6","title":"The Great When: A Long London Novel","author":"Moore, Alan:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B093KTJDL6.01.LZZZZZZZ.jpg","acquiredDate":null},{"asin":"B0DFZW73BS","title":"The Compound: A GMA Book Club Pick: A Novel","author":"Rawle, Aisling:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B0DFZW73BS.01.LZZZZZZZ.jpg","acquiredDate":null},{"asin":"B07B7LLJLZ","title":"The Hunting Party: A Novel","author":"Foley, Lucy:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B07B7LLJLZ.01.LZZZZZZZ.jpg","acquiredDate":null},{"asin":"B0CL3FMNKJ","title":"The Midnight Feast: An NPR Best Book of the Year","author":"Foley, Lucy:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B0CL3FMNKJ.01.LZZZZZZZ.jpg","acquiredDate":null}];
+      window.STATIC_GENERATED = "2026-03-16T19:01:21.573Z";
+    </script>
+</head>
+<body>
+
+<div class="scanlines"></div>
+<div class="cargo-glow"></div>
+<div class="error-banner" id="errorBanner">
+  <div class="error-title">⚠ SYNC ERROR</div>
+  <div id="errorMsg"></div>
+</div>
+<div class="shelf-wrap" id="shelfWrap"></div>
+<div class="hud" id="hud">SYS: NOMINAL<br>HOLD TEMP: 18°C<br><span id="clock-hud">--:--</span> GST</div>
+<div class="status" id="status"></div>
+
+<script>
+const POLL_MS    = 5 * 60 * 1000;
+const BOOK_COUNT = 40;
+const PER_SHELF  = 10;
+const REF_HEIGHT = 8.5;
+const REF_WIDTH  = 5.5;
+
+// publish.js injects window.STATIC_BOOKS and window.STATIC_GENERATED
+// when building the GitHub Pages version. When running locally those
+// are undefined and the page falls through to the live polling path.
+const STATIC_MODE = !!window.STATIC_BOOKS;
+
+let lastSynced = null;
+
+function coverSrc(book) {
+  if (STATIC_MODE) {
+    // Direct Amazon CDN — no local server needed
+    return book.coverUrl
+      || `https://images-na.ssl-images-amazon.com/images/P/${book.asin}.01.LZZZZZZZ.jpg`;
+  }
+  // Local server proxy (handles auth, resizing, caching)
+  return `/api/cover?asin=${encodeURIComponent(book.asin)}&url=${encodeURIComponent(book.coverUrl || '')}`;
+}
+
+function renderBooks(books) {
+  const wrap   = document.getElementById('shelfWrap');
+  const recent = books.slice(0, BOOK_COUNT);
+  const vw     = window.innerWidth;
+  const vh     = window.innerHeight;
+
+  const plankH  = 24, shadowH = 18, shelfGap = 28, padding = 48;
+  const availH  = vh - (plankH + shadowH) * 4 - shelfGap * 3 - padding;
+  const rowH    = Math.max(60, Math.floor(availH / 4));
+
+  wrap.innerHTML = '';
+
+  for (let s = 0; s < 4; s++) {
+    const shelf = recent.slice(s * PER_SHELF, (s + 1) * PER_SHELF);
+    if (!shelf.length) continue;
+
+    const maxH      = Math.max(...shelf.map(b => b.physicalHeight || REF_HEIGHT));
+    const pxPerInch = rowH / maxH;
+    const totalGap  = (shelf.length - 1) * 5 + 112;
+    const totalW    = shelf.reduce((sum, b) => sum + (b.physicalWidth || REF_WIDTH) * pxPerInch, 0);
+    const scale     = Math.min(1, (vw - totalGap) / totalW);
+    const ppi       = pxPerInch * scale;
+
+    const unit = document.createElement('div');
+    unit.className = 'shelf-unit';
+
+    const row = document.createElement('div');
+    row.className = 'books-row';
+
+    const bl = document.createElement('div');
+    bl.className = 'bracket bracket-left';
+    row.appendChild(bl);
+
+    shelf.forEach(book => {
+      const pH = Math.round((book.physicalHeight || REF_HEIGHT) * ppi);
+      const pW = Math.round((book.physicalWidth  || REF_WIDTH)  * ppi);
+      const div = document.createElement('div');
+      div.className = 'book';
+      div.style.cssText = `width:${pW}px; height:${pH}px;`;
+      div.innerHTML = `<img src="${coverSrc(book)}" alt="${escHtml(book.title)}" loading="eager">`;
+      row.appendChild(div);
+    });
+
+    const br = document.createElement('div');
+    br.className = 'bracket bracket-right';
+    row.appendChild(br);
+
+    const plank = document.createElement('div');
+    plank.className = 'plank';
+    [20, 34, 48].forEach(x => {
+      ['left','right'].forEach(side => {
+        const r = document.createElement('div');
+        r.className = 'rivet';
+        r.style[side] = x + 'px';
+        plank.appendChild(r);
+      });
+    });
+
+    const shadow = document.createElement('div');
+    shadow.className = 'plank-shadow';
+
+    unit.appendChild(row);
+    unit.appendChild(plank);
+    unit.appendChild(shadow);
+    wrap.appendChild(unit);
+  }
+}
+
+// ── Static mode (GitHub Pages) ────────────────────────────────────────────────
+function initStatic() {
+  renderBooks(window.STATIC_BOOKS);
+  document.getElementById('status').className = 'status live';
+  const d = new Date(window.STATIC_GENERATED);
+  const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const timeStr = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+  document.getElementById('hud').innerHTML =
+    `SYS: STATIC<br>GENERATED: ${dateStr} ${timeStr}<br><span id="clock-hud">--:--</span> GST`;
+  updateClock();
+  setInterval(updateClock, 1000);
+  window.addEventListener('resize', () => {
+    clearTimeout(window._resizeTimer);
+    window._resizeTimer = setTimeout(() => renderBooks(window.STATIC_BOOKS), 200);
+  });
+}
+
+// ── Live mode (local server) ──────────────────────────────────────────────────
+async function poll() {
+  const statusEl = document.getElementById('status');
+  const banner   = document.getElementById('errorBanner');
+  const errorMsg = document.getElementById('errorMsg');
+  try {
+    const res  = await fetch('/api/books');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+
+    const changed = data.lastSynced !== lastSynced;
+    lastSynced = data.lastSynced;
+
+    if (changed || !document.querySelector('.book')) {
+      renderBooks(data.books || []);
+    }
+    statusEl.className = 'status live';
+
+    const statusRes  = await fetch('/api/status');
+    const statusData = await statusRes.json();
+    if (statusData.lastSyncError) {
+      const msg = statusData.lastSyncError;
+      const isCookieError = msg.toLowerCase().includes('cookie') ||
+                            msg.toLowerCase().includes('login') ||
+                            msg.toLowerCase().includes('signin');
+      if (isCookieError) {
+        errorMsg.innerHTML =
+          'Amazon cookies have expired. In your kindle-shelf folder, run: ' +
+          '<span class="error-cmd">npm run update-cookies</span> ' +
+          'then restart the server.';
+      } else {
+        errorMsg.textContent = msg.slice(0, 200);
+      }
+      banner.classList.add('visible');
+    } else {
+      banner.classList.remove('visible');
+    }
+  } catch (err) {
+    statusEl.className = 'status error';
+    console.error('Poll failed:', err);
+  }
+}
+
+function initLive() {
+  poll();
+  setInterval(poll, POLL_MS);
+  updateClock();
+  setInterval(updateClock, 1000);
+  window.addEventListener('resize', () => {
+    clearTimeout(window._resizeTimer);
+    window._resizeTimer = setTimeout(() => {
+      fetch('/api/books').then(r => r.json()).then(d => renderBooks(d.books || [])).catch(() => {});
+    }, 200);
+  });
+}
+
+// ── Shared utilities ──────────────────────────────────────────────────────────
+function updateClock() {
+  const n  = new Date();
+  const hh = String(n.getHours()).padStart(2, '0');
+  const mm = String(n.getMinutes()).padStart(2, '0');
+  const el = document.getElementById('clock-hud');
+  if (el) el.textContent = `${hh}:${mm}`;
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+if (STATIC_MODE) {
+  initStatic();
+} else {
+  initLive();
+}
+</script>
+</body>
+</html>
