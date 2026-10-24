@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Kindle Shelf</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #060a10;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    font-family: 'Share Tech Mono', 'Courier New', monospace;
+  }
+
+  /* Cargo hold hex grating */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='46'%3E%3Cpolygon points='20,1 39,11 39,35 20,45 1,35 1,11' fill='%2308101a' stroke='%23162230' stroke-width='1.2'/%3E%3Cpolygon points='20,6 34,14 34,32 20,40 6,32 6,14' fill='none' stroke='%230f1c2a' stroke-width='0.4'/%3E%3C/svg%3E"),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='46'%3E%3Cpolygon points='20,1 39,11 39,35 20,45 1,35 1,11' fill='%2308101a' stroke='%23162230' stroke-width='1.2'/%3E%3C/svg%3E");
+    background-position: 0 0, 20px 23px;
+    background-size: 40px 46px;
+    pointer-events: none;
+    opacity: 0.9;
+  }
+
+  /* Warm overhead light — cargo bay lamp */
+  body::after {
+    content: '';
+    position: fixed;
+    top: 0; left: 8%; right: 8%;
+    height: 2px;
+    background: linear-gradient(90deg,
+      transparent,
+      rgba(255,220,120,0.3) 30%,
+      rgba(255,220,120,0.55) 50%,
+      rgba(255,220,120,0.3) 70%,
+      transparent
+    );
+    box-shadow: 0 0 22px 8px rgba(255,210,100,0.12);
+  }
+
+  /* Cargo hold ambient glow — warm amber center, cold blue corner */
+  .cargo-glow {
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse at 50% 40%, rgba(90,65,18,0.18) 0%, transparent 60%),
+      radial-gradient(ellipse at 5% 90%, rgba(60,120,200,0.1) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  /* CRT scanlines */
+  .scanlines {
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 3px,
+      rgba(0,0,0,0.07) 3px,
+      rgba(0,0,0,0.07) 4px
+    );
+    pointer-events: none;
+    z-index: 100;
+  }
+
+  .shelf-wrap {
+    width: 100vw;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    position: relative;
+    z-index: 2;
+  }
+
+  .shelf-unit {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .shelf-unit + .shelf-unit { margin-top: 28px; }
+
+  .books-row {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 5px;
+    padding: 0 56px;
+    width: 100%;
+    position: relative;
+  }
+
+  /* Metal bracket ends */
+  .bracket {
+    position: absolute;
+    bottom: 0;
+    width: 16px;
+    height: 65%;
+    background: linear-gradient(180deg, #3a3f48 0%, #22272e 100%);
+    border: 1px solid #4a5560;
+    border-bottom: none;
+    border-radius: 3px 3px 0 0;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.12), 2px 0 8px rgba(0,0,0,0.5);
+    flex-shrink: 0;
+  }
+  .bracket-left  { left: 28px; }
+  .bracket-right { right: 28px; }
+
+  .book {
+    flex-shrink: 0;
+    position: relative;
+    border-radius: 1px 2px 2px 1px;
+    overflow: hidden;
+    box-shadow:
+      3px 4px 16px rgba(0,0,0,0.9),
+      -1px 0 3px rgba(0,0,0,0.6),
+      inset -2px 0 5px rgba(0,0,0,0.4);
+    filter: brightness(0.82) saturate(0.72);
+  }
+
+  .book img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .book::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      108deg,
+      rgba(255,255,255,0.07) 0%,
+      transparent 25%,
+      transparent 75%,
+      rgba(0,0,0,0.35) 100%
+    );
+    pointer-events: none;
+  }
+
+  /* Brushed durasteel shelf plank */
+  .plank {
+    width: 100%;
+    height: 24px;
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(180deg,
+      #4e5664 0%,
+      #363d49 18%,
+      #282f38 50%,
+      #1c2028 100%
+    );
+    border-top: 1px solid #606e80;
+    border-bottom: 2px solid #0e1115;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.95), 0 2px 6px rgba(0,0,0,0.5);
+  }
+
+  /* Horizontal brushed metal lines */
+  .plank::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      180deg,
+      transparent,
+      transparent 2px,
+      rgba(255,255,255,0.02) 2px,
+      rgba(255,255,255,0.02) 3px
+    );
+  }
+
+  .rivet {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #5a6470, #252c35);
+    border: 1px solid #4a5260;
+  }
+
+  .plank-shadow {
+    width: 100%;
+    height: 18px;
+    background: linear-gradient(180deg, rgba(0,0,0,0.6), transparent);
+  }
+
+  /* HUD readout */
+  .hud {
+    position: fixed;
+    bottom: 20px; right: 24px;
+    font-family: 'Share Tech Mono', 'Courier New', monospace;
+    font-size: 10px;
+    color: rgba(80,200,255,0.32);
+    letter-spacing: 0.15em;
+    line-height: 1.8;
+    text-align: right;
+    z-index: 200;
+  }
+
+  .status {
+    position: fixed;
+    top: 18px; right: 22px;
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: #333;
+    z-index: 200;
+    transition: background 0.5s;
+  }
+  .status.live    { background: #3aaa60; box-shadow: 0 0 10px rgba(58,170,96,0.8); }
+  .status.syncing { background: #aaaa30; animation: blink 0.8s ease infinite; }
+  .status.error   { background: #cc3333; box-shadow: 0 0 10px rgba(200,50,50,0.8); }
+
+  /* Error banner */
+  .error-banner {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    background: rgba(180, 30, 30, 0.92);
+    color: rgba(255,220,220,0.95);
+    font-family: 'Share Tech Mono', 'Courier New', monospace;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    line-height: 1.7;
+    padding: 14px 24px;
+    z-index: 300;
+    border-bottom: 1px solid rgba(255,80,80,0.4);
+  }
+  .error-banner.visible { display: block; }
+  .error-banner .error-title {
+    font-size: 13px;
+    color: #ff9999;
+    margin-bottom: 4px;
+  }
+  .error-banner .error-cmd {
+    background: rgba(0,0,0,0.3);
+    padding: 2px 8px;
+    border-radius: 3px;
+    color: #ffddaa;
+  }
+
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+</style>
+
+    <script>
+      window.STATIC_BOOKS = [{"asin":"B07MQPHKSL","title":"The Starless Sea: A Novel","author":"Morgenstern, Erin:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B07MQPHKSL.01.LZZZZZZZ.jpg","acquiredDate":null,"physicalWidth":5.8,"physicalHeight":8.5},{"asin":"B000OVLINI","title":"The Shadow of the Wind (The Cemetery of Forgotten Books Book 1)","author":"Zafon, Carlos Ruiz:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B000OVLINI.01.LZZZZZZZ.jpg","acquiredDate":null,"physicalWidth":5.8,"physicalHeight":8.5},{"asin":"B0F476XJRX","title":"Transformers Vol. 3","author":"Warren Johnson, Daniel:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B0F476XJRX.01.LZZZZZZZ.jpg","acquiredDate":null,"physicalWidth":5.8,"physicalHeight":8.5},{"asin":"B07YK1K1YK","title":"Mexican Gothic","author":"Moreno-Garcia, Silvia:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B07YK1K1YK.01.LZZZZZZZ.jpg","acquiredDate":null,"physicalWidth":5.8,"physicalHeight":8.5},{"asin":"B0FQR1G3VD","title":"Transformers Vol. 4","author":"Warren Johnson, Daniel:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B0FQR1G3VD.01.LZZZZZZZ.jpg","acquiredDate":null,"physicalWidth":5.8,"physicalHeight":8.5},{"asin":"B0CWCBBHJ3","title":"Transformers Vol. 1","author":"Johnson, Daniel Warren:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B0CWCBBHJ3.01.LZZZZZZZ.jpg","acquiredDate":null,"physicalWidth":5.8,"physicalHeight":8.5},{"asin":"B0DGS9P4NS","title":"Transformers Vol. 2","author":"Warren Johnson,Daniel:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B0DGS9P4NS.01.LZZZZZZZ.jpg","acquiredDate":null,"physicalWidth":5.8,"physicalHeight":8.5},{"asin":"B0CV5SDX7X","title":"Void Rivals Vol. 1","author":"Kirkman, Robert:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B0CV5SDX7X.01.LZZZZZZZ.jpg","acquiredDate":null,"physicalWidth":5.8,"physicalHeight":8.5},{"asin":"B0GL46X1PS","title":"Transformers Vol. 5","author":"Kirkman, Robert:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B0GL46X1PS.01.LZZZZZZZ.jpg","acquiredDate":null,"physicalWidth":5.8,"physicalHeight":8.5},{"asin":"B0FQPD7FCG","title":"Void Rivals, Vol. 4","author":"Kirkman, Robert:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B0FQPD7FCG.01.LZZZZZZZ.jpg","acquiredDate":null,"physicalWidth":5.55,"physicalHeight":8.16},{"asin":"B0H6H4HRBZ","title":"Void Rivals, Vol. 5","author":"Kirkman, Robert:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B0H6H4HRBZ.01.LZZZZZZZ.jpg","acquiredDate":null,"physicalWidth":5.8,"physicalHeight":8.5},{"asin":"B0F46ZBLKS","title":"Void Rivals Vol. 3","author":"Kirkman, Robert:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B0F46ZBLKS.01.LZZZZZZZ.jpg","acquiredDate":null,"physicalWidth":5.8,"physicalHeight":8.5},{"asin":"B0D9MWT3QP","title":"Void Rivals Vol. 2","author":"Kirkman,Robert:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B0D9MWT3QP.01.LZZZZZZZ.jpg","acquiredDate":null,"physicalWidth":5.8,"physicalHeight":8.5},{"asin":"B08GJQFFDX","title":"The Blacktongue Thief","author":"Buehlman, Christopher:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B08GJQFFDX.01.LZZZZZZZ.jpg","acquiredDate":null,"physicalWidth":5.8,"physicalHeight":8.5},{"asin":"B00FOPTNEK","title":"The Complete Tommy & Tuppence Collection: The Secret Adversary, Partners in Crime, N or M?, By the Pricking of My Thumbs, and Postern of Fate (Tommy & Tuppence Mysteries)","author":"Christie, Agatha:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B00FOPTNEK.01.LZZZZZZZ.jpg","acquiredDate":null,"physicalWidth":5.8,"physicalHeight":8.5},{"asin":"B003JTHWR8","title":"Empress Orchid: A Novel","author":"Min, Anchee:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B003JTHWR8.01.LZZZZZZZ.jpg","acquiredDate":null,"physicalWidth":5.8,"physicalHeight":8.5},{"asin":"B0DFG6G33S","title":"Written on the Dark","author":"Kay, Guy Gavriel:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B0DFG6G33S.01.LZZZZZZZ.jpg","acquiredDate":null,"physicalWidth":5.8,"physicalHeight":8.5},{"asin":"B0DK4683W3","title":"Isabella Nagg and the Pot of Basil: A Novel","author":"Darkshire, Oliver:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B0DK4683W3.01.LZZZZZZZ.jpg","acquiredDate":null,"physicalWidth":5.8,"physicalHeight":8.5},{"asin":"B09CYNZLSV","title":"All the Seas of the World","author":"Kay, Guy Gavriel:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B09CYNZLSV.01.LZZZZZZZ.jpg","acquiredDate":null,"physicalWidth":5.8,"physicalHeight":8.5},{"asin":"B00JO8PEN2","title":"The Nightingale: A Novel","author":"Hannah, Kristin:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B00JO8PEN2.01.LZZZZZZZ.jpg","acquiredDate":null,"physicalWidth":5.8,"physicalHeight":8.5},{"asin":"B07GQ8T75P","title":"A Brightness Long Ago","author":"Kay, Guy Gavriel:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B07GQ8T75P.01.LZZZZZZZ.jpg","acquiredDate":null,"physicalWidth":6.34,"physicalHeight":9.32},{"asin":"B0GM2XN7T6","title":"We Chase Shadows: A We Solve Murders Mystery","author":"Osman, Richard:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B0GM2XN7T6.01.LZZZZZZZ.jpg","acquiredDate":null,"physicalWidth":5.8,"physicalHeight":8.5},{"asin":"B07FDLL3LF","title":"Die!Die!Die! #1","author":"Kirkman, Robert:Gimple, Scott M.:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B07FDLL3LF.01.LZZZZZZZ.jpg","acquiredDate":null,"physicalWidth":5.8,"physicalHeight":8.5},{"asin":"B07JK3D2QT","title":"Cognitive-Behavioral Therapy for Avoidant/Restrictive Food Intake Disorder: Children, Adolescents, and Adults","author":"Thomas, Ph.D. Jennifer J:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B07JK3D2QT.01.LZZZZZZZ.jpg","acquiredDate":null,"physicalWidth":5.8,"physicalHeight":8.5},{"asin":"B0D26CZWFD","title":"Bury Our Bones in the Midnight Soil","author":"Schwab, V. E.:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B0D26CZWFD.01.LZZZZZZZ.jpg","acquiredDate":null,"physicalWidth":5.8,"physicalHeight":8.5},{"asin":"B000JMKNJ2","title":"The Lies of Locke Lamora (Gentleman Bastards, Book 1)","author":"Lynch, Scott:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B000JMKNJ2.01.LZZZZZZZ.jpg","acquiredDate":null,"physicalWidth":5.8,"physicalHeight":8.5},{"asin":"B0FWRB4KLM","title":"The House of Boleyn: A Novel","author":"Borman, Tracy:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B0FWRB4KLM.01.LZZZZZZZ.jpg","acquiredDate":null,"physicalWidth":5.8,"physicalHeight":8.5},{"asin":"B0DZTGC7GM","title":"Murder at the Grand Alpine Hotel: The New Miss Marple Mystery – A Classic Whodunit of Deception and Suspense in an Isolated Alpine Retreat","author":"Foley, Lucy:Christie, Agatha:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B0DZTGC7GM.01.LZZZZZZZ.jpg","acquiredDate":null,"physicalWidth":5.8,"physicalHeight":8.5},{"asin":"B0DT25B7YW","title":"The Pirate Queen: A Novel from the New York Times bestselling author of The Frozen River","author":"Lawhon, Ariel:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B0DT25B7YW.01.LZZZZZZZ.jpg","acquiredDate":null,"physicalWidth":5.8,"physicalHeight":8.5},{"asin":"B0FJZZP8R7","title":"Between Two Fires","author":"Buehlman, Christopher:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B0FJZZP8R7.01.LZZZZZZZ.jpg","acquiredDate":null,"physicalWidth":5.8,"physicalHeight":8.5},{"asin":"B09HDVSTTT","title":"Paladin's Hope (The Saint of Steel Book 3)","author":"Kingfisher, T.:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B09HDVSTTT.01.LZZZZZZZ.jpg","acquiredDate":null,"physicalWidth":5.8,"physicalHeight":8.5},{"asin":"B08WWKXXVY","title":"Paladin's Strength (The Saint of Steel Book 2)","author":"Kingfisher, T.:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B08WWKXXVY.01.LZZZZZZZ.jpg","acquiredDate":null,"physicalWidth":5.8,"physicalHeight":8.5},{"asin":"B0GMK2XK1Q","title":"Dead Beat (Ninth House Series Book 3)","author":"Bardugo, Leigh:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B0GMK2XK1Q.01.LZZZZZZZ.jpg","acquiredDate":null,"physicalWidth":5.8,"physicalHeight":8.5},{"asin":"B0848Q8JVW","title":"Paladin's Grace (The Saint of Steel Book 1)","author":"Kingfisher, T.:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B0848Q8JVW.01.LZZZZZZZ.jpg","acquiredDate":null,"physicalWidth":5.8,"physicalHeight":8.5},{"asin":"B0BDMPQ2FC","title":"None of This Is True: A Novel","author":"Jewell, Lisa:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B0BDMPQ2FC.01.LZZZZZZZ.jpg","acquiredDate":null,"physicalWidth":5.8,"physicalHeight":8.5},{"asin":"B0F5PCC13S","title":"The Lost Book of Elizabeth Barton: A Novel","author":"Brown, Jennifer N.:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B0F5PCC13S.01.LZZZZZZZ.jpg","acquiredDate":null,"physicalWidth":5.8,"physicalHeight":8.5},{"asin":"B00N0WUPKU","title":"Speak: A Novel","author":"Hall, Louisa:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B00N0WUPKU.01.LZZZZZZZ.jpg","acquiredDate":null,"physicalWidth":5.8,"physicalHeight":8.5},{"asin":"B00DPM90C4","title":"I Am Pilgrim: A Thriller","author":"Hayes, Terry:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B00DPM90C4.01.LZZZZZZZ.jpg","acquiredDate":null,"physicalWidth":5.8,"physicalHeight":8.5},{"asin":"B0CFJSP5N1","title":"A Sorceress Comes to Call","author":"Kingfisher, T.:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B0CFJSP5N1.01.LZZZZZZZ.jpg","acquiredDate":null,"physicalWidth":5.8,"physicalHeight":8.5},{"asin":"B00H6STTBK","title":"Pasquale's Angel","author":"McAuley, Paul:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B00H6STTBK.01.LZZZZZZZ.jpg","acquiredDate":null,"physicalWidth":5.8,"physicalHeight":8.5},{"asin":"B0FZLXDVR7","title":"Plant Lady","author":"Minyoung, Kang:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B0FZLXDVR7.01.LZZZZZZZ.jpg","acquiredDate":null},{"asin":"B0F2BBKX6B","title":"The Strength of the Few (Hierarchy Book 2)","author":"Islington, James:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B0F2BBKX6B.01.LZZZZZZZ.jpg","acquiredDate":null},{"asin":"B0FZWD5R37","title":"The Oxford Detective Society","author":"Martin, Faith:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B0FZWD5R37.01.LZZZZZZZ.jpg","acquiredDate":null},{"asin":"B0FCG7LLVP","title":"If We Cannot Go at the Speed of Light","author":"Choyeop, Kim:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B0FCG7LLVP.01.LZZZZZZZ.jpg","acquiredDate":null},{"asin":"B0C4G3VXML","title":"Berlin Game: A Bernard Samson Novel","author":"Deighton, Len:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B0C4G3VXML.01.LZZZZZZZ.jpg","acquiredDate":null},{"asin":"B0C1X8HKSM","title":"The Book of Ile-Rien: The Element of Fire & The Death of the Necromancer - Updated and Revised Edition","author":"Wells, Martha:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B0C1X8HKSM.01.LZZZZZZZ.jpg","acquiredDate":null},{"asin":"B0FX2BT2F4","title":"The Missed Connection","author":"Williams, Tia:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B0FX2BT2F4.01.LZZZZZZZ.jpg","acquiredDate":null},{"asin":"B0763KVBBH","title":"A Big Ship at the Edge of the Universe (The Salvagers Book 1)","author":"White, Alex:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B0763KVBBH.01.LZZZZZZZ.jpg","acquiredDate":null},{"asin":"B0FXH3D4KT","title":"Blunt Instrument (Dell Chandler Mysteries Book 1)","author":"Bloom, Amy:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B0FXH3D4KT.01.LZZZZZZZ.jpg","acquiredDate":null},{"asin":"B09XL83PCQ","title":"Some Desperate Glory","author":"Tesh, Emily:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B09XL83PCQ.01.LZZZZZZZ.jpg","acquiredDate":null},{"asin":"B0FX5SZWXF","title":"Murder at the Spirit Lounge: A Novel (Nora Breen Investigates Book 2)","author":"Kidd, Jess:","coverUrl":"https://images-na.ssl-images-amazon.com/images/P/B0FX5SZWXF.01.LZZZZZZZ.jpg","acquiredDate":null}];
+      window.STATIC_GENERATED = "2026-10-24T03:37:31.486Z";
+    </script>
+</head>
+<body>
+
+<div class="scanlines"></div>
+<div class="cargo-glow"></div>
+<div class="error-banner" id="errorBanner">
+  <div class="error-title">⚠ SYNC ERROR</div>
+  <div id="errorMsg"></div>
+</div>
+<div class="shelf-wrap" id="shelfWrap"></div>
+<div class="hud" id="hud">SYS: NOMINAL<br>HOLD TEMP: 18°C<br><span id="clock-hud">--:--</span> GST</div>
+<div class="status" id="status"></div>
+
+<script>
+const POLL_MS    = 5 * 60 * 1000;
+const BOOK_COUNT = 40;
+const PER_SHELF  = 10;
+const REF_HEIGHT = 8.5;
+const REF_WIDTH  = 5.5;
+
+// publish.js injects window.STATIC_BOOKS and window.STATIC_GENERATED
+// when building the GitHub Pages version. When running locally those
+// are undefined and the page falls through to the live polling path.
+const STATIC_MODE = !!window.STATIC_BOOKS;
+
+let lastSynced = null;
+
+function coverSrc(book) {
+  if (STATIC_MODE) {
+    // Direct Amazon CDN — no local server needed
+    return book.coverUrl
+      || `https://images-na.ssl-images-amazon.com/images/P/${book.asin}.01.LZZZZZZZ.jpg`;
+  }
+  // Local server proxy (handles auth, resizing, caching)
+  return `/api/cover?asin=${encodeURIComponent(book.asin)}&url=${encodeURIComponent(book.coverUrl || '')}`;
+}
+
+function renderBooks(books) {
+  const wrap   = document.getElementById('shelfWrap');
+  const recent = books.slice(0, BOOK_COUNT);
+  const vw     = window.innerWidth;
+  const vh     = window.innerHeight;
+
+  const plankH  = 24, shadowH = 18, shelfGap = 28, padding = 48;
+  const availH  = vh - (plankH + shadowH) * 4 - shelfGap * 3 - padding;
+  const rowH    = Math.max(60, Math.floor(availH / 4));
+
+  wrap.innerHTML = '';
+
+  for (let s = 0; s < 4; s++) {
+    const shelf = recent.slice(s * PER_SHELF, (s + 1) * PER_SHELF);
+    if (!shelf.length) continue;
+
+    const maxH      = Math.max(...shelf.map(b => b.physicalHeight || REF_HEIGHT));
+    const pxPerInch = rowH / maxH;
+    const totalGap  = (shelf.length - 1) * 5 + 112;
+    const totalW    = shelf.reduce((sum, b) => sum + (b.physicalWidth || REF_WIDTH) * pxPerInch, 0);
+    const scale     = Math.min(1, (vw - totalGap) / totalW);
+    const ppi       = pxPerInch * scale;
+
+    const unit = document.createElement('div');
+    unit.className = 'shelf-unit';
+
+    const row = document.createElement('div');
+    row.className = 'books-row';
+
+    const bl = document.createElement('div');
+    bl.className = 'bracket bracket-left';
+    row.appendChild(bl);
+
+    shelf.forEach(book => {
+      const pH = Math.round((book.physicalHeight || REF_HEIGHT) * ppi);
+      const pW = Math.round((book.physicalWidth  || REF_WIDTH)  * ppi);
+      const div = document.createElement('div');
+      div.className = 'book';
+      div.style.cssText = `width:${pW}px; height:${pH}px;`;
+      div.innerHTML = `<img src="${coverSrc(book)}" alt="${escHtml(book.title)}" loading="eager">`;
+      row.appendChild(div);
+    });
+
+    const br = document.createElement('div');
+    br.className = 'bracket bracket-right';
+    row.appendChild(br);
+
+    const plank = document.createElement('div');
+    plank.className = 'plank';
+    [20, 34, 48].forEach(x => {
+      ['left','right'].forEach(side => {
+        const r = document.createElement('div');
+        r.className = 'rivet';
+        r.style[side] = x + 'px';
+        plank.appendChild(r);
+      });
+    });
+
+    const shadow = document.createElement('div');
+    shadow.className = 'plank-shadow';
+
+    unit.appendChild(row);
+    unit.appendChild(plank);
+    unit.appendChild(shadow);
+    wrap.appendChild(unit);
+  }
+}
+
+// ── Static mode (GitHub Pages) ────────────────────────────────────────────────
+function initStatic() {
+  renderBooks(window.STATIC_BOOKS);
+  document.getElementById('status').className = 'status live';
+  const d = new Date(window.STATIC_GENERATED);
+  const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const timeStr = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+  document.getElementById('hud').innerHTML =
+    `SYS: STATIC<br>GENERATED: ${dateStr} ${timeStr}<br><span id="clock-hud">--:--</span> GST`;
+  updateClock();
+  setInterval(updateClock, 1000);
+  window.addEventListener('resize', () => {
+    clearTimeout(window._resizeTimer);
+    window._resizeTimer = setTimeout(() => renderBooks(window.STATIC_BOOKS), 200);
+  });
+}
+
+// ── Live mode (local server) ──────────────────────────────────────────────────
+async function poll() {
+  const statusEl = document.getElementById('status');
+  const banner   = document.getElementById('errorBanner');
+  const errorMsg = document.getElementById('errorMsg');
+  try {
+    const res  = await fetch('/api/books');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+
+    const changed = data.lastSynced !== lastSynced;
+    lastSynced = data.lastSynced;
+
+    if (changed || !document.querySelector('.book')) {
+      renderBooks(data.books || []);
+    }
+    statusEl.className = 'status live';
+
+    const statusRes  = await fetch('/api/status');
+    const statusData = await statusRes.json();
+    if (statusData.lastSyncError) {
+      const msg = statusData.lastSyncError;
+      const isCookieError = msg.toLowerCase().includes('cookie') ||
+                            msg.toLowerCase().includes('login') ||
+                            msg.toLowerCase().includes('signin');
+      if (isCookieError) {
+        errorMsg.innerHTML =
+          'Amazon cookies have expired. In your kindle-shelf folder, run: ' +
+          '<span class="error-cmd">npm run update-cookies</span> ' +
+          'then restart the server.';
+      } else {
+        errorMsg.textContent = msg.slice(0, 200);
+      }
+      banner.classList.add('visible');
+    } else {
+      banner.classList.remove('visible');
+    }
+  } catch (err) {
+    statusEl.className = 'status error';
+    console.error('Poll failed:', err);
+  }
+}
+
+function initLive() {
+  poll();
+  setInterval(poll, POLL_MS);
+  updateClock();
+  setInterval(updateClock, 1000);
+  window.addEventListener('resize', () => {
+    clearTimeout(window._resizeTimer);
+    window._resizeTimer = setTimeout(() => {
+      fetch('/api/books').then(r => r.json()).then(d => renderBooks(d.books || [])).catch(() => {});
+    }, 200);
+  });
+}
+
+// ── Shared utilities ──────────────────────────────────────────────────────────
+function updateClock() {
+  const n  = new Date();
+  const hh = String(n.getHours()).padStart(2, '0');
+  const mm = String(n.getMinutes()).padStart(2, '0');
+  const el = document.getElementById('clock-hud');
+  if (el) el.textContent = `${hh}:${mm}`;
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+if (STATIC_MODE) {
+  initStatic();
+} else {
+  initLive();
+}
+</script>
+</body>
+</html>
